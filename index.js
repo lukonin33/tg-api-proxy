@@ -1,18 +1,11 @@
-/**
- * Telegram API Proxy
- * Перенаправляет запросы к api.telegram.org
- * Деплоить на Render.com как Web Service (Node.js)
- */
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Проксируем всё на api.telegram.org
 app.use('/', createProxyMiddleware({
   target: 'https://api.telegram.org',
   changeOrigin: true,
@@ -20,12 +13,11 @@ app.use('/', createProxyMiddleware({
   logLevel: 'warn',
   on: {
     error: (err, req, res) => {
-      console.error('Proxy error:', err.message);
       res.status(502).json({ error: 'Proxy error', message: err.message });
     }
   }
 }));
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Telegram API Proxy running on port ${PORT}`);
 });
