@@ -1,17 +1,49 @@
 const http = require('http');
 const https = require('https');
-const url = require('url');
-
 const PORT = process.env.PORT || 10000;
 const TARGET = 'api.telegram.org';
 
 const server = http.createServer((req, res) => {
+  // Health check
   if (req.url === '/health') {
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({status: 'ok'}));
     return;
   }
 
+  // Парсинг публичного канала t.me/s/:channel
+  const tmeMatch = req.url.match(/^\/tme\/([a-zA-Z0-9_]+)$/);
+  if (tmeMatch) {
+    const channel = tmeMatch[1];
+    const opts = {
+      hostname: 't.me',
+      port: 443,
+      path: `/s/${channel}`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)',
+        'Accept': 'text/html',
+      }
+    };
+    const proxy = https.request(opts, (proxyRes) => {
+      let data = '';
+      proxyRes.on('data', chunk => data += chunk);
+      proxyRes.on('end', () => {
+        const matches = [...data.matchAll(/data-post="[^/]+\/(\d+)"/g)];
+        const posts = matches.map(m => ({ id: parseInt(m[1]) }));
+        res.writeHead(200, {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'});
+        res.end(JSON.stringify({ ok: true, posts }));
+      });
+    });
+    proxy.on('error', (err) => {
+      res.writeHead(502);
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+    });
+    proxy.end();
+    return;
+  }
+
+  // Проксирование Bot API
   const options = {
     hostname: TARGET,
     port: 443,
@@ -19,17 +51,14 @@ const server = http.createServer((req, res) => {
     method: req.method,
     headers: { ...req.headers, host: TARGET },
   };
-
   const proxy = https.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
     proxyRes.pipe(res, { end: true });
   });
-
   proxy.on('error', (err) => {
     res.writeHead(502);
     res.end(JSON.stringify({ error: err.message }));
   });
-
   req.pipe(proxy, { end: true });
 });
 
