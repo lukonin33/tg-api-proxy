@@ -4,11 +4,13 @@ const PORT = process.env.PORT || 10000;
 const TG_TARGET = 'api.telegram.org';
 
 // LLM upstream targets (pass-through proxy — клиент шлёт свой Authorization, прокси не хранит ключи)
+// Order matters: more-specific prefixes (e.g. '/facebook/rupload/') must come BEFORE generic ones ('/facebook/')
 const LLM_TARGETS = {
-  '/anthropic/': 'api.anthropic.com',
-  '/openai/':    'api.openai.com',
-  '/deepseek/':  'api.deepseek.com',
-  '/facebook/':  'graph.facebook.com',
+  '/anthropic/':         'api.anthropic.com',
+  '/openai/':            'api.openai.com',
+  '/deepseek/':          'api.deepseek.com',
+  '/facebook/rupload/':  'rupload.facebook.com',  // Resumable Upload API for IG (bypass error 2207052)
+  '/facebook/':          'graph.facebook.com',
 };
 
 function passThrough(req, res, hostname, upstreamPath) {
