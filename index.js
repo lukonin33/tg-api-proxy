@@ -8,6 +8,7 @@ const LLM_TARGETS = {
   '/anthropic/': 'api.anthropic.com',
   '/openai/':    'api.openai.com',
   '/deepseek/':  'api.deepseek.com',
+  '/facebook/':  'graph.facebook.com',
 };
 
 function passThrough(req, res, hostname, upstreamPath) {
