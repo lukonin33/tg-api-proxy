@@ -11,6 +11,12 @@ const LLM_TARGETS = {
   '/deepseek/':          'api.deepseek.com',
   '/facebook/rupload/':  'rupload.facebook.com',  // Resumable Upload API for IG (bypass error 2207052)
   '/facebook/':          'graph.facebook.com',
+  // 2026-05-29: fal.ai routes — workaround flaky fal.media CDN из РФ YC NSK.
+  // queue.fal.run — API submission (image/video generation)
+  // v3b.fal.media / v3.fal.media — binary CDN для download'a сгенерированных файлов
+  '/fal/':               'queue.fal.run',
+  '/fal-media-v3b/':     'v3b.fal.media',
+  '/fal-media-v3/':      'v3.fal.media',
 };
 
 function passThrough(req, res, hostname, upstreamPath) {
@@ -32,7 +38,7 @@ const server = http.createServer((req, res) => {
   // Health check
   if (req.url === '/health') {
     res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({status: 'ok', routes: ['/anthropic/*', '/openai/*', '/deepseek/*', '/tme/:channel', '/* (telegram bot api default)']}));
+    res.end(JSON.stringify({status: 'ok', routes: ['/anthropic/*', '/openai/*', '/deepseek/*', '/facebook/*', '/fal/*', '/fal-media-v3/*', '/fal-media-v3b/*', '/tme/:channel', '/* (telegram bot api default)']}));
     return;
   }
 
