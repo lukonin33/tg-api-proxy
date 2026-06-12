@@ -94,6 +94,23 @@ function enrichTme(html) {
       const v = parseCount(viewsM[1]);
       if (v != null) post.views = v;
     }
+    // reactions: эмодзи + счётчик; платные (звёзды) без <b>emoji</b> → emoji: "paid".
+    // Комментарии/пересылки в публичной t.me/s НЕ отдаются — только Bot API/MTProto.
+    const reBlock = ch.match(/tgme_widget_message_reactions[^>]*>([\s\S]*?)<\/div>/);
+    if (reBlock) {
+      const reactions = [];
+      const spanRe = /<span class="tgme_reaction[^"]*">([\s\S]*?)<\/span>/g;
+      let sm;
+      while ((sm = spanRe.exec(reBlock[1])) !== null) {
+        const inner = sm[1];
+        const emM = inner.match(/<b>([^<]*)<\/b>/);
+        const cM = inner.match(/<\/i>\s*([\d.,]+\s*[KMB]?)/i);
+        const c = cM ? parseCount(cM[1]) : null;
+        if (c == null) continue; // у настоящей реакции на t.me/s всегда есть счётчик; без него — UI-элемент
+        reactions.push({ emoji: emM ? emM[1] : 'paid', count: c });
+      }
+      if (reactions.length) post.reactions = reactions;
+    }
     posts.push(post);
   }
   return { posts: posts.slice(-30), channel: channel };
